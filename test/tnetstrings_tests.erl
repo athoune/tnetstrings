@@ -24,3 +24,9 @@ struct_test() ->
                     {age, 42},
                     {name, <<"Robert">>}
                 ]})).
+
+payload_test() ->
+    T = "5:false!",
+    ?assertEqual({5, "false!"}, tnetstrings:payload_size(T, [])),
+    ?assertEqual({"false", $!, []}, tnetstrings:payload_parse(T)),
+    ?assertEqual({"false", $!, "garbage"}, tnetstrings:payload_parse(T ++ "garbage")).

@@ -1,6 +1,6 @@
 -module(tnetstrings).
 
--export([encode/1]).
+-export([encode/1, decode/1]).
 
 -ifdef(TEST).
 -compile(export_all).
@@ -30,10 +30,32 @@ encode(L) when is_list(L) ->
 encode({struct, Props}) when is_list(Props) ->
     with_size(lists:foldl(
         fun({K, V}, Acc) ->
+                %FIXME assert K is string
             Acc ++ encode(K) ++ encode(V)
     end, [], Props)) ++ "}".
 
+decode(_T) ->
+    ok.
+
+% private
 with_size(A) ->
     [S] = io_lib:format("~w", [iolist_size(A)]),
     S ++ ":" ++ A.
+
+payload_parse(T) ->
+    {Length, Extra} = payload_size(T, ""),
+    Data = string:substr(Extra, 1, Length),
+    Type = lists:nth(Length + 1, Extra),
+    Remain = string:substr(Extra, Length + 2),
+    {Data, Type, Remain}.
+
+payload_size("", _) ->
+    ko; %FIXME nice error message
+payload_size([Head | Tail], Acc) ->
+    case Head of
+         $: ->
+             {Int, _Rest} = string:to_integer(Acc),
+             {Int, Tail};
+          N -> payload_size(Tail, Acc ++ [N])
+    end.
 
