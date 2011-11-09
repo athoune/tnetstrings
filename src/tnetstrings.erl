@@ -34,8 +34,18 @@ encode({struct, Props}) when is_list(Props) ->
             Acc ++ encode(K) ++ encode(V)
     end, [], Props)) ++ "}".
 
-decode(_T) ->
-    ok.
+decode(T) ->
+    {Payload, Type, _Remain} = payload_parse(T),
+    case Type of
+        $# ->
+            {Int, _} = string:to_integer(Payload),
+            Int;
+        $^ ->
+            {Float, _} = string:to_float(Payload),
+            Float;
+        $~ -> null;
+        $, -> list_to_binary(Payload)
+    end.
 
 % private
 with_size(A) ->
