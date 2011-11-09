@@ -11,6 +11,7 @@ my_func() ->
 
 encode(B) when B == true -> "4:true!";
 encode(false) -> "5:false!";
+encode(null) -> "0:~";
 encode(F) when is_float(F) ->
     [A] = io_lib:format("~w", [F]),
     with_size(A) ++ "^";
@@ -25,7 +26,12 @@ encode(L) when is_list(L) ->
     with_size(lists:foldl(
         fun(I, Acc) ->
             Acc ++ encode(I)
-        end, [], L)) ++ "]".
+        end, [], L)) ++ "]";
+encode({struct, Props}) when is_list(Props) ->
+    with_size(lists:foldl(
+        fun({K, V}, Acc) ->
+            Acc ++ encode(K) ++ encode(V)
+    end, [], Props)) ++ "}".
 
 with_size(A) ->
     [S] = io_lib:format("~w", [iolist_size(A)]),
