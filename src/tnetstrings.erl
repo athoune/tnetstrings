@@ -23,6 +23,12 @@ encode(S) when is_binary(S) ->
     with_size(binary_to_list(S)) ++ ",";
 encode(A) when is_atom(A) ->
     with_size(atom_to_list(A)) ++ ",";
+encode([{_K, _V}| _Remains] = Props) ->
+    with_size(lists:foldl(
+        fun({K, V}, Acc) ->
+            %FIXME assert K is string
+            Acc ++ encode(K) ++ encode(V)
+    end, [], Props)) ++ "}";
 encode(L) when is_list(L) ->
     with_size(lists:foldl(
         fun(I, Acc) ->

@@ -29,6 +29,10 @@ list_test() ->
     ?assertEqual([1, <<"a">>, true], tnetstrings:decode("15:1:1#1:a,4:true!]")).
 
 struct_test() ->
+    ?assertEqual("27:3:age,2:42#4:name,6:Robert,}", tnetstrings:encode([
+                    {age, 42},
+                    {name, <<"Robert">>}
+                ])),
     ?assertEqual("27:3:age,2:42#4:name,6:Robert,}", tnetstrings:encode({struct, [
                     {age, 42},
                     {name, <<"Robert">>}
