@@ -1,4 +1,6 @@
 -module(tnetstrings_tests).
+-author('mathieu@garambrogne.net').
+
 -include_lib("eunit/include/eunit.hrl").
 
 number_test() ->
@@ -14,19 +16,27 @@ string_test() ->
 
 boolean_test() ->
     ?assertEqual("4:true!", tnetstrings:encode(true)),
-    ?assertEqual("5:false!", tnetstrings:encode(false)).
+    ?assertEqual(true, tnetstrings:decode("4:true!")),
+    ?assertEqual("5:false!", tnetstrings:encode(false)),
+    ?assertEqual(false, tnetstrings:decode("5:false!")).
 
 null_test() ->
-    ?assertEqual("0:~", tnetstrings:encode(null)).
+    ?assertEqual("0:~", tnetstrings:encode(null)),
+    ?assertEqual(null, tnetstrings:decode("0:~")).
 
 list_test() ->
-    ?assertEqual("15:1:1#1:a,4:true!]", tnetstrings:encode([1, <<"a">>, true])).
+    ?assertEqual("15:1:1#1:a,4:true!]", tnetstrings:encode([1, <<"a">>, true])),
+    ?assertEqual([1, <<"a">>, true], tnetstrings:decode("15:1:1#1:a,4:true!]")).
 
 struct_test() ->
     ?assertEqual("27:3:age,2:42#4:name,6:Robert,}", tnetstrings:encode({struct, [
                     {age, 42},
                     {name, <<"Robert">>}
-                ]})).
+                ]})),
+    ?assertEqual({struct, [
+                    {age, 42},
+                    {name, <<"Robert">>}
+                ]}, tnetstrings:decode("27:3:age,2:42#4:name,6:Robert,}")).
 
 payload_test() ->
     T = "5:false!",

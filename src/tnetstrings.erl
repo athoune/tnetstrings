@@ -1,4 +1,5 @@
 -module(tnetstrings).
+-author('mathieu@garambrogne.net').
 
 -export([encode/1, decode/1]).
 
@@ -35,8 +36,12 @@ encode({struct, Props}) when is_list(Props) ->
     end, [], Props)) ++ "}".
 
 decode(T) ->
-    {Payload, Type, _Remain} = payload_parse(T),
-    case Type of
+    {Value, _} = parse(T),
+    Value.
+
+parse(T) ->
+    {Payload, Type, Remain} = payload_parse(T),
+    Value = case Type of
         $# ->
             {Int, _} = string:to_integer(Payload),
             Int;
@@ -44,8 +49,18 @@ decode(T) ->
             {Float, _} = string:to_float(Payload),
             Float;
         $~ -> null;
-        $, -> list_to_binary(Payload)
-    end.
+        $, -> list_to_binary(Payload);
+        $! ->
+            case Payload of
+                "true"  -> true;
+                "false" -> false
+                % FIXME  _ -> fail
+            end;
+        $] -> parse_list(Payload, []);
+        $} -> parse_struct(Payload, [])
+
+    end,
+    {Value, Remain}.
 
 % private
 with_size(A) ->
@@ -69,3 +84,19 @@ payload_size([Head | Tail], Acc) ->
           N -> payload_size(Tail, Acc ++ [N])
     end.
 
+parse_list(L, Acc) ->
+    {Value, Remain} = parse(L),
+    List = Acc ++ [Value],
+    case Remain of
+        [] -> List;
+        _  -> parse_list(Remain, List)
+    end.
+
+parse_struct(S, Acc) ->
+    {K, R1} = parse(S),
+    {V, R2} = parse(R1),
+    Struct = Acc ++ [{list_to_atom(binary_to_list(K)), V}],
+    case R2 of
+        [] -> {struct, Struct};
+        _  -> parse_struct(R2, Struct)
+    end.
