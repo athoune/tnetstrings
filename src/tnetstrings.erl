@@ -66,8 +66,7 @@ parse(T) ->
 
 % private
 with_size(A) ->
-    [S] = io_lib:format("~w", [iolist_size(A)]),
-    S ++ ":" ++ A.
+    integer_to_list(iolist_size(A)) ++ ":" ++ A.
 
 payload_parse(T) ->
     {Length, Extra} = payload_size(T, ""),
