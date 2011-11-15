@@ -7,9 +7,6 @@
 -compile(export_all).
 -endif.
 
-my_func() ->
-    ok.
-
 encode(B) when B == true -> "4:true!";
 encode(false) -> "5:false!";
 encode(null) -> "0:~";
