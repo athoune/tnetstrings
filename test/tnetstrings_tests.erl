@@ -47,3 +47,11 @@ payload_test() ->
     ?assertEqual({5, "false!"}, tnetstrings:payload_size(T, [])),
     ?assertEqual({"false", $!, []}, tnetstrings:payload_parse(T)),
     ?assertEqual({"false", $!, "garbage"}, tnetstrings:payload_parse(T ++ "garbage")).
+
+binary_test() ->
+    T = <<"27:3:age,2:42#4:name,6:Robert,}">>,
+    {Data, Type, Remain} = tnetstrings:payload_parse(T),
+    ?assertEqual(<<"}">>, Type),
+    ?assertEqual(<<>>, Remain),
+    ?assertEqual(<<"3:age,2:42#4:name,6:Robert,">>, Data).
+    %?debugFmt("~n~w~n~w~n~w~n", [Type, Data, Remain]).

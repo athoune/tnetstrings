@@ -41,6 +41,28 @@ decode(T) ->
     {Value, _} = parse(T),
     Value.
 
+parse(T) when is_binary(T)->
+    {Payload, Type, Remain} = payload_parse(T),
+    Value = case Type of
+        <<"#">> ->
+            {Int, _} = string:to_integer(binary_to_list(Payload)),
+            Int;
+        <<"^">> ->
+            {Float, _} = string:to_float(binary_to_list(Payload)),
+            Float;
+        <<"~">> -> null;
+        <<",">> -> Payload;
+        <<"!">> ->
+            case Payload of
+                <<"true">>  -> true;
+                <<"false">> -> false
+                % FIXME  _ -> fail
+            end;
+        <<"]">> -> parse_list(Payload, []);
+        <<"}">> -> parse_struct(Payload, [])
+
+    end,
+    {Value, Remain};
 parse(T) ->
     {Payload, Type, Remain} = payload_parse(T),
     Value = case Type of
@@ -68,6 +90,16 @@ parse(T) ->
 with_size(A) ->
     integer_to_list(iolist_size(A)) ++ ":" ++ A.
 
+payload_parse(T) when is_binary(T) ->
+    [L, E] = binary:split(T, <<$:>>),
+    Length = list_to_integer(binary_to_list(L)),
+    Data   = binary:part(E, 0, Length),
+    Type   = binary:part(E, Length, 1),
+    Remain = case size(Data) of
+        Length -> <<>>;
+        _ -> binary:part(E, {Length+1, -1})
+    end,
+    {Data, Type, Remain};
 payload_parse(T) ->
     {Length, Extra} = payload_size(T, ""),
     Data = string:substr(Extra, 1, Length),
