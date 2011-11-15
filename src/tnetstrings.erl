@@ -16,9 +16,8 @@ encode(null) -> "0:~";
 encode(F) when is_float(F) ->
     [A] = io_lib:format("~w", [F]),
     with_size(A) ++ "^";
-encode(N) when is_number(N) ->
-    [A] = io_lib:format("~w", [N]),
-    with_size(A) ++ "#";
+encode(N) when is_integer(N) ->
+    with_size(integer_to_list(N)) ++ "#";
 encode(S) when is_binary(S) ->
     with_size(binary_to_list(S)) ++ ",";
 encode(A) when is_atom(A) ->
@@ -101,7 +100,7 @@ parse_list(L, Acc) ->
 parse_struct(S, Acc) ->
     {K, R1} = parse(S),
     {V, R2} = parse(R1),
-    Struct = Acc ++ [{list_to_atom(binary_to_list(K)), V}],
+    Struct = Acc ++ [{binary_to_atom(K, utf8), V}],
     case R2 of
         [] -> {struct, Struct};
         _  -> parse_struct(R2, Struct)
