@@ -7,35 +7,39 @@
 -compile(export_all).
 -endif.
 
-encode(B) when B == true -> "4:true!";
-encode(false) -> "5:false!";
-encode(null) -> "0:~";
-encode(F) when is_float(F) ->
+encode(Z)->
+    reverse(encodel(Z)).
+
+reverse(L) when is_list(L) -> list_to_binary(lists:reverse(L));
+reverse(L) -> L.
+
+encodel(B) when B == true -> <<"4:true!">>;
+encodel(false) -> <<"5:false!">>;
+encodel(null) -> <<"0:~">>;
+encodel(F) when is_float(F) ->
     [A] = io_lib:format("~w", [F]),
-    with_size(A) ++ "^";
-encode(N) when is_integer(N) ->
-    with_size(integer_to_list(N)) ++ "#";
-encode(S) when is_binary(S) ->
-    with_size(binary_to_list(S)) ++ ",";
-encode(A) when is_atom(A) ->
-    with_size(atom_to_list(A)) ++ ",";
-encode([{_K, _V}| _Remains] = Props) ->
-    with_size(lists:foldl(
+    [$^ | with_size(A)];
+encodel(N) when is_integer(N) ->
+    [$# | with_size(integer_to_list(N))];
+encodel(S) when is_binary(S) ->
+    [$, | with_size(binary_to_list(S))];
+encodel(A) when is_atom(A) ->
+    [$, | with_size(atom_to_list(A))];
+encodel([{_K, _V}| _Remains] = Props) ->
+    [$} | with_size(lists:reverse(lists:foldl(
         fun({K, V}, Acc) ->
             %FIXME assert K is string
-            Acc ++ encode(K) ++ encode(V)
-    end, [], Props)) ++ "}";
-encode(L) when is_list(L) ->
-    with_size(lists:foldl(
+            [reverse(encodel(V)), reverse(encodel(K)) | Acc]
+    end, [], Props)))];
+encodel(L) when is_list(L) ->
+    LL = lists:foldl(
         fun(I, Acc) ->
-            Acc ++ encode(I)
-        end, [], L)) ++ "]";
-encode({struct, Props}) when is_list(Props) ->
-    with_size(lists:foldl(
-        fun({K, V}, Acc) ->
-                %FIXME assert K is string
-            Acc ++ encode(K) ++ encode(V)
-    end, [], Props)) ++ "}".
+                [reverse(encodel(I)) | Acc]
+    end, [], L),
+    io:format("~p~n~p~n", [LL, iolist_size(LL)]),
+    [$\] | with_size(lists:reverse(LL))];
+encodel({struct, Props}) when is_list(Props) ->
+    encodel(Props).
 
 decode(T) ->
     {Value, _} = parse(T),
@@ -88,7 +92,7 @@ parse(T) ->
 
 % private
 with_size(A) ->
-    integer_to_list(iolist_size(A)) ++ ":" ++ A.
+    lists:reverse([integer_to_list(iolist_size(A)), $: | A]).
 
 payload_parse(T) when is_binary(T) ->
     [L, E] = binary:split(T, <<$:>>),
@@ -117,6 +121,13 @@ payload_size([Head | Tail], Acc) ->
           N -> payload_size(Tail, Acc ++ [N])
     end.
 
+parse_list(L, Acc) when is_binary(L) ->
+    {Value, Remain} = parse(L),
+    List = Acc ++ [Value],
+    case Remain of
+        [] -> List;
+        _  -> parse_list(Remain, List)
+    end;
 parse_list(L, Acc) ->
     {Value, Remain} = parse(L),
     List = Acc ++ [Value],
