@@ -36,7 +36,6 @@ encodel(L) when is_list(L) ->
         fun(I, Acc) ->
                 [reverse(encodel(I)) | Acc]
     end, [], L),
-    io:format("~p~n~p~n", [LL, iolist_size(LL)]),
     [$\] | with_size(lists:reverse(LL))];
 encodel({struct, Props}) when is_list(Props) ->
     encodel(Props).
@@ -45,7 +44,7 @@ decode(T) ->
     {Value, _} = parse(T),
     Value.
 
-parse(T) when is_binary(T)->
+parse(T) ->
     {Payload, Type, Remain} = payload_parse(T),
     Value = case Type of
         <<"#">> ->
@@ -59,34 +58,12 @@ parse(T) when is_binary(T)->
         <<"!">> ->
             case Payload of
                 <<"true">>  -> true;
-                <<"false">> -> false
-                % FIXME  _ -> fail
+                <<"false">> -> false;
+                _Bad -> exit("Bad binary")
             end;
         <<"]">> -> parse_list(Payload, []);
-        <<"}">> -> parse_struct(Payload, [])
-
-    end,
-    {Value, Remain};
-parse(T) ->
-    {Payload, Type, Remain} = payload_parse(T),
-    Value = case Type of
-        $# ->
-            {Int, _} = string:to_integer(Payload),
-            Int;
-        $^ ->
-            {Float, _} = string:to_float(Payload),
-            Float;
-        $~ -> null;
-        $, -> list_to_binary(Payload);
-        $! ->
-            case Payload of
-                "true"  -> true;
-                "false" -> false
-                % FIXME  _ -> fail
-            end;
-        $] -> parse_list(Payload, []);
-        $} -> parse_struct(Payload, [])
-
+        <<"}">> -> parse_struct(Payload, []);
+        _Bad -> exit("Bad type")
     end,
     {Value, Remain}.
 
@@ -94,53 +71,31 @@ parse(T) ->
 with_size(A) ->
     lists:reverse([integer_to_list(iolist_size(A)), $: | A]).
 
-payload_parse(T) when is_binary(T) ->
+payload_parse(T) ->
+    %io:format("~n~w~n", [T]),
     [L, E] = binary:split(T, <<$:>>),
     Length = list_to_integer(binary_to_list(L)),
     Data   = binary:part(E, 0, Length),
     Type   = binary:part(E, Length, 1),
-    Remain = case size(Data) of
-        Length -> <<>>;
-        _ -> binary:part(E, {Length+1, -1})
+    Remain = case iolist_size(E) -1 of
+         Length -> <<>>;
+         _      -> binary:part(E, Length+1, iolist_size(E)-Length-1)
     end,
-    {Data, Type, Remain};
-payload_parse(T) ->
-    {Length, Extra} = payload_size(T, ""),
-    Data = string:substr(Extra, 1, Length),
-    Type = lists:nth(Length + 1, Extra),
-    Remain = string:substr(Extra, Length + 2),
     {Data, Type, Remain}.
 
-payload_size("", _) ->
-    ko; %FIXME nice error message
-payload_size([Head | Tail], Acc) ->
-    case Head of
-         $: ->
-             {Int, _Rest} = string:to_integer(Acc),
-             {Int, Tail};
-          N -> payload_size(Tail, Acc ++ [N])
-    end.
-
-parse_list(L, Acc) when is_binary(L) ->
-    {Value, Remain} = parse(L),
-    List = Acc ++ [Value],
-    case Remain of
-        [] -> List;
-        _  -> parse_list(Remain, List)
-    end;
 parse_list(L, Acc) ->
     {Value, Remain} = parse(L),
-    List = Acc ++ [Value],
+    List = [Value | Acc],
     case Remain of
-        [] -> List;
+        <<>> -> lists:reverse(List);
         _  -> parse_list(Remain, List)
     end.
 
 parse_struct(S, Acc) ->
     {K, R1} = parse(S),
     {V, R2} = parse(R1),
-    Struct = Acc ++ [{binary_to_atom(K, utf8), V}],
+    Struct = [{binary_to_atom(K, utf8), V} | Acc ],
     case R2 of
-        [] -> {struct, Struct};
+        <<>> -> {struct, lists:reverse(Struct)};
         _  -> parse_struct(R2, Struct)
     end.
