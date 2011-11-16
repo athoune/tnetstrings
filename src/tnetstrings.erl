@@ -36,7 +36,6 @@ encodel(L) when is_list(L) ->
         fun(I, Acc) ->
                 [reverse(encodel(I)) | Acc]
     end, [], L),
-    io:format("~p~n~p~n", [LL, iolist_size(LL)]),
     [$\] | with_size(lists:reverse(LL))];
 encodel({struct, Props}) when is_list(Props) ->
     encodel(Props).
@@ -100,9 +99,10 @@ payload_parse(T) when is_binary(T) ->
     Data   = binary:part(E, 0, Length),
     Type   = binary:part(E, Length, 1),
     Remain = case size(Data) of
-        Length -> <<>>;
-        _ -> binary:part(E, {Length+1, -1})
+         Length -> <<>>;
+         _      -> binary:part(E, Length+1, iolist_size(E)-Length)
     end,
+    io:format("popo~n~w~n", [Remain]),
     {Data, Type, Remain};
 payload_parse(T) ->
     {Length, Extra} = payload_size(T, ""),
