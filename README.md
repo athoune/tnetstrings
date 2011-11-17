@@ -3,6 +3,11 @@ Tnetstrings for Erlang
 
 [Tnetstrings](http://tnetstrings.org/) is a JSON like serialisation.
 
+Install
+-------
+
+You can put *tnetstrings.erl* in your project or add the project as a dependency if you are using *rebar*.
+
 Usage
 -----
 
@@ -30,4 +35,4 @@ Todo
 Licence
 -------
 
-BSD
+MIT
