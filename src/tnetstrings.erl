@@ -72,7 +72,6 @@ with_size(A) ->
     lists:reverse([integer_to_list(iolist_size(A)), $: | A]).
 
 payload_parse(T) ->
-    %io:format("~n~w~n", [T]),
     [L, E] = binary:split(T, <<$:>>),
     Length = list_to_integer(binary_to_list(L)),
     Data   = binary:part(E, 0, Length),
