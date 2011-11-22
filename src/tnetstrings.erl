@@ -114,10 +114,18 @@ parse_list(L, Acc, Option) ->
         _  -> parse_list(Remain, List, Option)
     end.
 
+parse_key(K, Option) when Option == existing_atom ->
+    binary_to_existing_atom(K, utf8);
+parse_key(K, Option) when Option == atom ->
+    binary_to_atom(K, utf8);
+parse_key(K, _) ->
+    K.
+
 parse_struct(S, Acc, Option) ->
     {K, R1} = parse(S, Option),
     {V, R2} = parse(R1, Option),
-    Struct = [{binary_to_atom(K, utf8), V} | Acc ],
+    io:format("~p~n", [Option]),
+    Struct = [{parse_key(K, Option#decoder.label), V} | Acc ],
     case R2 of
         <<>> -> {struct, lists:reverse(Struct)};
         _  -> parse_struct(R2, Struct, Option)

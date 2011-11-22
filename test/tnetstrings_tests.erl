@@ -41,7 +41,7 @@ struct_test() ->
     ?assertEqual({struct, [
                     {age, 42},
                     {name, <<"Robert">>}
-                ]}, tnetstrings:decode(<<"27:3:age,2:42#4:name,6:Robert,}">>)).
+                ]}, tnetstrings:decode(<<"27:3:age,2:42#4:name,6:Robert,}">>, [{label, atom}])).
 
 payload_test() ->
     T = <<"5:false!">>,
