@@ -17,7 +17,7 @@ Example = {struct, [
     {name, <<"Robert">>}
 ]},
 T = tnetstrings:encode(Example),
-Example = tnetstrings:decode(T).
+Example = tnetstrings:decode(T, [{label, atom}]).
 
 ```
 
