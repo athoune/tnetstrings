@@ -1,13 +1,23 @@
 -module(tnetstrings).
 -author('mathieu@garambrogne.net').
 
--export([encode/1, decode/1]).
+-export([
+    encode/1,
+    encode/2,
+    decode/1,
+    decode/2
+]).
 
 -ifdef(TEST).
 -compile(export_all).
 -endif.
 
+-record(decoder, {label=binary, float=false}).
+
 encode(Z)->
+    encode(Z, []).
+
+encode(Z, _Option) ->
     reverse(encodel(Z)).
 
 reverse(L) when is_list(L) -> list_to_binary(lists:reverse(L));
@@ -41,18 +51,32 @@ encodel({struct, Props}) when is_list(Props) ->
     encodel(Props).
 
 decode(T) ->
-    {Value, _} = parse(T),
+    decode(T, []).
+
+decode(T, Option) ->
+    {Value, _} = parse(T, parse_decoder(Option)),
     Value.
 
-parse(T) ->
+parse_decoder(Option) ->
+    #decoder{
+        label=proplists:get_value(label, Option, binary),
+        float=proplists:get_bool(float, Option)}.
+
+to_float(F) ->
+    {Float, _} = string:to_float(binary_to_list(F)),
+    Float.
+to_int(I) ->
+    {Int, _} = string:to_integer(binary_to_list(I)),
+    Int.
+
+parse_int(I, Float) when Float -> to_int(I) * 1.0;
+parse_int(I, _) -> to_int(I).
+
+parse(T, Option) ->
     {Payload, Type, Remain} = payload_parse(T),
     Value = case Type of
-        <<"#">> ->
-            {Int, _} = string:to_integer(binary_to_list(Payload)),
-            Int;
-        <<"^">> ->
-            {Float, _} = string:to_float(binary_to_list(Payload)),
-            Float;
+        <<"#">> -> parse_int(Payload, Option#decoder.float);
+        <<"^">> -> to_float(Payload);
         <<"~">> -> null;
         <<",">> -> Payload;
         <<"!">> ->
@@ -61,8 +85,8 @@ parse(T) ->
                 <<"false">> -> false;
                 _Bad -> exit("Bad binary")
             end;
-        <<"]">> -> parse_list(Payload, []);
-        <<"}">> -> parse_struct(Payload, []);
+        <<"]">> -> parse_list(Payload, [], Option);
+        <<"}">> -> parse_struct(Payload, [], Option);
         _Bad -> exit("Bad type")
     end,
     {Value, Remain}.
@@ -82,19 +106,19 @@ payload_parse(T) ->
     end,
     {Data, Type, Remain}.
 
-parse_list(L, Acc) ->
-    {Value, Remain} = parse(L),
+parse_list(L, Acc, Option) ->
+    {Value, Remain} = parse(L, Option),
     List = [Value | Acc],
     case Remain of
         <<>> -> lists:reverse(List);
-        _  -> parse_list(Remain, List)
+        _  -> parse_list(Remain, List, Option)
     end.
 
-parse_struct(S, Acc) ->
-    {K, R1} = parse(S),
-    {V, R2} = parse(R1),
+parse_struct(S, Acc, Option) ->
+    {K, R1} = parse(S, Option),
+    {V, R2} = parse(R1, Option),
     Struct = [{binary_to_atom(K, utf8), V} | Acc ],
     case R2 of
         <<>> -> {struct, lists:reverse(Struct)};
-        _  -> parse_struct(R2, Struct)
+        _  -> parse_struct(R2, Struct, Option)
     end.
