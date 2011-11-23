@@ -38,10 +38,15 @@ struct_test() ->
                     {age, 42},
                     {name, <<"Robert">>}
                 ]})),
-    ?assertEqual({struct, [
+     ?assertEqual({struct, [
                     {age, 42},
                     {name, <<"Robert">>}
-                ]}, tnetstrings:decode(<<"27:3:age,2:42#4:name,6:Robert,}">>, [{label, atom}])).
+                ]}, tnetstrings:decode(<<"27:3:age,2:42#4:name,6:Robert,}">>, [{label, atom}])),
+     D = tnetstrings:decoder([{label, atom}]),
+     ?assertEqual({struct, [
+                    {age, 42},
+                    {name, <<"Robert">>}
+                ]}, D(<<"27:3:age,2:42#4:name,6:Robert,}">>)).
 
 payload_test() ->
     T = <<"5:false!">>,

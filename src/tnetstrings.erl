@@ -5,7 +5,8 @@
     encode/1,
     encode/2,
     decode/1,
-    decode/2
+    decode/2,
+    decoder/1
 ]).
 
 -ifdef(TEST).
@@ -17,38 +18,40 @@
 encode(Z)->
     encode(Z, []).
 
-encode(Z, _Option) ->
-    reverse(encodel(Z)).
+encode(Z, Option) ->
+    reverse(encodel(Z, Option)).
 
 reverse(L) when is_list(L) -> list_to_binary(lists:reverse(L));
 reverse(L) -> L.
 
-encodel(B) when B == true -> <<"4:true!">>;
-encodel(false) -> <<"5:false!">>;
-encodel(null) -> <<"0:~">>;
-encodel(F) when is_float(F) ->
+encodel(B, _Option) when B == true -> <<"4:true!">>;
+encodel(false, _Option) -> <<"5:false!">>;
+encodel(null, _Option) -> <<"0:~">>;
+encodel(F, _Option) when is_float(F) ->
     [A] = io_lib:format("~w", [F]),
     [$^ | with_size(A)];
-encodel(N) when is_integer(N) ->
+encodel(N, _Option) when is_integer(N) ->
     [$# | with_size(integer_to_list(N))];
-encodel(S) when is_binary(S) ->
+encodel(S, _Option) when is_binary(S) ->
     [$, | with_size(binary_to_list(S))];
-encodel(A) when is_atom(A) ->
+encodel(A, _Option) when is_atom(A) ->
     [$, | with_size(atom_to_list(A))];
-encodel([{_K, _V}| _Remains] = Props) ->
+encodel([{_K, _V}| _Remains] = Props, _Option) ->
     [$} | with_size(lists:reverse(lists:foldl(
         fun({K, V}, Acc) ->
             %FIXME assert K is string
-            [reverse(encodel(V)), reverse(encodel(K)) | Acc]
+            [reverse(encodel(V, _Option)), reverse(encodel(K, _Option)) | Acc]
     end, [], Props)))];
-encodel(L) when is_list(L) ->
+encodel(L, _Option) when is_list(L) ->
     LL = lists:foldl(
         fun(I, Acc) ->
-                [reverse(encodel(I)) | Acc]
+                [reverse(encodel(I, _Option)) | Acc]
     end, [], L),
     [$\] | with_size(lists:reverse(LL))];
-encodel({struct, Props}) when is_list(Props) ->
-    encodel(Props).
+encodel({struct, Props}, _Option) when is_list(Props) ->
+    encodel(Props, _Option).
+
+% Decoding
 
 decode(T) ->
     decode(T, []).
@@ -56,6 +59,13 @@ decode(T) ->
 decode(T, Option) ->
     {Value, _} = parse(T, parse_decoder(Option)),
     Value.
+
+decoder(Option) ->
+    P = parse_decoder(Option),
+    fun(T) ->
+        {Value, _} = parse(T, P),
+        Value
+    end.
 
 parse_decoder(Option) ->
     #decoder{
