@@ -1,12 +1,13 @@
 {application, tnetstrings,
  [
-  {description, ""},
+  {description, "TNetStrings for Erlang"},
   {vsn, "0.1"},
+  {modules, []},
   {registered, []},
   {applications, [
                   kernel,
                   stdlib
                  ]},
-  {mod, { }},
+  {mod, {tnetstrings, []}},
   {env, []}
  ]}.
