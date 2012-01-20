@@ -8,7 +8,7 @@ app: get-deps
 get-deps:
 	@$(REBAR) get-deps
 
-tests: clean app eunit
+test: clean app eunit
 
 eunit:
 	@$(REBAR) eunit
