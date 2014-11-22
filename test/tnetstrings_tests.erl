@@ -27,13 +27,14 @@ null_test() ->
 
 list_test() ->
     ?assertEqual(<<"15:1:1#1:a,4:true!]">>, tnetstrings:encode([1, <<"a">>, true])),
-    ?assertEqual([1, <<"a">>, true], tnetstrings:decode(<<"15:1:1#1:a,4:true!]">>)).
+    ?assertEqual([1, <<"a">>, true], tnetstrings:decode(<<"15:1:1#1:a,4:true!]">>)),
+
+    ?assertEqual(<<"22:8:1:a,1:b,}8:1:c,1:d,}]">>, tnetstrings:encode([{struct, [{a, <<"b">>}]},
+                                                                       {struct, [{c, <<"d">>}]}])),
+    ?assertEqual([{struct, [{<<"a">>, <<"b">>}]},
+                  {struct, [{<<"c">>, <<"d">>}]}], tnetstrings:decode(<<"22:8:1:a,1:b,}8:1:c,1:d,}]">>)).
 
 struct_test() ->
-    ?assertEqual(<<"27:3:age,2:42#4:name,6:Robert,}">>, tnetstrings:encode([
-                    {age, 42},
-                    {name, <<"Robert">>}
-                ])),
     ?assertEqual(<<"27:3:age,2:42#4:name,6:Robert,}">>, tnetstrings:encode({struct, [
                     {age, 42},
                     {name, <<"Robert">>}

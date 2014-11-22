@@ -24,6 +24,12 @@ encode(Z, Option) ->
 reverse(L) when is_list(L) -> list_to_binary(lists:reverse(L));
 reverse(L) -> L.
 
+encodel({struct, Props}, _Option) when is_list(Props) ->
+    [$} | with_size(lists:reverse(lists:foldl(
+        fun({K, V}, Acc) ->
+            %FIXME assert K is string
+            [reverse(encodel(V, _Option)), reverse(encodel(K, _Option)) | Acc]
+    end, [], Props)))];
 encodel(B, _Option) when B == true -> <<"4:true!">>;
 encodel(false, _Option) -> <<"5:false!">>;
 encodel(null, _Option) -> <<"0:~">>;
@@ -36,20 +42,12 @@ encodel(S, _Option) when is_binary(S) ->
     [$, | with_size(binary_to_list(S))];
 encodel(A, _Option) when is_atom(A) ->
     [$, | with_size(atom_to_list(A))];
-encodel([{_K, _V}| _Remains] = Props, _Option) ->
-    [$} | with_size(lists:reverse(lists:foldl(
-        fun({K, V}, Acc) ->
-            %FIXME assert K is string
-            [reverse(encodel(V, _Option)), reverse(encodel(K, _Option)) | Acc]
-    end, [], Props)))];
 encodel(L, _Option) when is_list(L) ->
     LL = lists:foldl(
         fun(I, Acc) ->
                 [reverse(encodel(I, _Option)) | Acc]
     end, [], L),
-    [$\] | with_size(lists:reverse(LL))];
-encodel({struct, Props}, _Option) when is_list(Props) ->
-    encodel(Props, _Option).
+    [$\] | with_size(lists:reverse(LL))].
 
 % Decoding
 
